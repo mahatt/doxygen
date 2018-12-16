@@ -52,6 +52,7 @@
 #include "declinfo.h"
 #include "htmlgen.h"
 #include "latexgen.h"
+#include "markdowngen.h"
 #include "mangen.h"
 #include "language.h"
 #include "debug.h"
@@ -11662,7 +11663,8 @@ void generateOutput()
   bool generateMan   = Config_getBool(GENERATE_MAN);
   bool generateRtf   = Config_getBool(GENERATE_RTF);
   bool generateDocbook = Config_getBool(GENERATE_DOCBOOK);
-
+  // TODO: Add Configuration to Frontend
+  bool generateMarkdown = true;
 
   g_outputList = new OutputList(TRUE);
   if (generateHtml)
@@ -11703,6 +11705,10 @@ void generateOutput()
   {
     g_outputList->add(new RTFGenerator);
     RTFGenerator::init();
+  }
+  if(generateMarkdown){
+	  g_outputList->add(new MarkdownGenerator);
+	  MarkdownGenerator::init();
   }
   if (Config_getBool(USE_HTAGS))
   {

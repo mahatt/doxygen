@@ -209,6 +209,7 @@ add_library(_doxygen STATIC
     mangen.cpp
     sqlite3gen.cpp
     markdown.cpp
+    markdowngen.cpp
     marshal.cpp
     memberdef.cpp
     membergroup.cpp
