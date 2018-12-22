@@ -11194,6 +11194,11 @@ void parseInput()
   if (generateHtml || g_useOutputTemplate /* TODO: temp hack */)
     htmlOutput = createOutputDirectory(outputDirectory,Config_getString(HTML_OUTPUT),"/html");
 
+  QCString markdownOutput;
+  bool &generateMarkdown  = Config_getBool(GENERATE_MARKDOWN);
+  if (generateMarkdown)
+    markdownOutput = createOutputDirectory(outputDirectory,Config_getString(MARKDOWN_OUTPUT),"/markdown");
+
   QCString docbookOutput;
   bool &generateDocbook = Config_getBool(GENERATE_DOCBOOK);
   if (generateDocbook)

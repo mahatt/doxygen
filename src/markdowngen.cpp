@@ -27,29 +27,25 @@
 #include "bufstr.h"
 #include "resourcemgr.h"
 
-
 //#define DBG_MARKDOWN(x) x;
-//#define MARKDOWN_OUTPUT Config_getString(HTML_OUTPUT);
-#define MARKDOWN_OUTPUT "markdown"
-
-
 
 
 MarkdownGenerator::MarkdownGenerator() : OutputGenerator(){ // @suppress("Class members should be properly initialized")
-	dir = MARKDOWN_OUTPUT;
+	dir = Config_getString(MARKDOWN_OUTPUT);
 }
 
 MarkdownGenerator::~MarkdownGenerator(){
 
 }
 void MarkdownGenerator::init(){
-	  QCString dname=Config_getString(HTML_OUTPUT);
+	  QCString dname=Config_getString(MARKDOWN_OUTPUT);
 	  QDir d(dname);
 	  if (!d.exists() && !d.mkdir(dname))
 	  {
 	    err("Could not create output directory %s\n",dname.data());
 	    exit(1);
 	  }
+	  // FIXIT:   What is SubDir???
 	  createSubDirs(d);
 }
 

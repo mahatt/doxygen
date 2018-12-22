@@ -1736,6 +1736,39 @@ to disable this feature.
       </docs>
     </option>
   </group>
+  
+  <group name='MARKDOWN' docs='Configuration options related to the MARKDOWN output'>
+
+    <option type='bool' id='GENERATE_MARKDOWN' defval='1'>
+      <docs>
+<![CDATA[
+ If the \c GENERATE_MARKDOWN tag is set to \c YES, doxygen will
+ generate MARKDOWN output
+]]>
+      </docs>
+    </option>
+
+    <option type='string' id='MARKDOWN_OUTPUT' format='dir' defval='markdown' depends='GENERATE_MARKDOWN'>
+      <docs>
+<![CDATA[
+ The \c MARKDOWN_OUTPUT tag is used to specify where the MARKDOWN docs will be put.
+ If a relative path is entered the value of \ref cfg_output_directory "OUTPUT_DIRECTORY" will be
+ put in front of it.
+]]>
+      </docs>
+    </option>
+
+    <option type='string' id='MARKDOWN_FILE_EXTENSION' format='string' defval='.md' depends='GENERATE_MARKDOWN'>
+      <docs>
+<![CDATA[
+ The \c MARKDOWN_FILE_EXTENSION tag can be used to specify the file extension for
+ each generated MARKDOWN page (for example: <code>.md, .markdown).
+]]>
+      </docs>
+    </option>
+
+  </group>
+
   <group name='HTML' docs='Configuration options related to the HTML output'>
     <option type='bool' id='GENERATE_HTML' defval='1'>
       <docs>
