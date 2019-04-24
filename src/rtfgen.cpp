@@ -665,7 +665,7 @@ void RTFGenerator::endIndexSection(IndexSections is)
       break;
     case isMainPage:
       t << "\\par " << rtf_Style_Reset << endl;
-      if (!Doxygen::mainPage || Doxygen::mainPage->title().isEmpty())
+      if (!mainPageHasTitle())
       {
         t << "{\\tc \\v " << theTranslator->trMainPage() << "}"<< endl;
       }
@@ -2803,7 +2803,7 @@ void RTFGenerator::exceptionEntry(const char* prefix,bool closeBracket)
   t << " ";
 }
 
-void RTFGenerator::writeDoc(DocNode *n,Definition *ctx,MemberDef *)
+void RTFGenerator::writeDoc(DocNode *n,const Definition *ctx,const MemberDef *)
 {
   RTFDocVisitor *visitor = new RTFDocVisitor(t,*this,ctx?ctx->getDefFileExtension():QCString(""));
   n->accept(visitor);

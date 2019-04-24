@@ -111,6 +111,7 @@ CommandMap cmdMap[] =
   { "\\",            CMD_BSLASH },
   { "@",             CMD_AT },
   { "<",             CMD_LESS },
+  { "=",             CMD_EQUAL },
   { ">",             CMD_GREATER },
   { "&",             CMD_AMP },
   { "$",             CMD_DOLLAR },
@@ -120,7 +121,6 @@ CommandMap cmdMap[] =
   { ".",             CMD_PUNT },
   { "+",             CMD_PLUS },
   { "-",             CMD_MINUS },
-  { ":",             CMD_COLON },
   { "::",            CMD_DCOLON },
   { "\"",            CMD_QUOTE },
   { "_internalref",  CMD_INTERNALREF },
@@ -148,6 +148,7 @@ CommandMap cmdMap[] =
   { "--",            CMD_NDASH },
   { "---",           CMD_MDASH },
   { "_setscope",     CMD_SETSCOPE },
+  { "emoji",         CMD_EMOJI },
   { 0,               0 },
 };
 

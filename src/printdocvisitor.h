@@ -72,14 +72,14 @@ class PrintDocVisitor : public DocVisitor
     void visit(DocEmoji *s)
     {
       indent_leaf();
-      const char *res = EmojiEntityMapper::instance()->utf8(s->emoji());
+      const char *res = EmojiEntityMapper::instance()->name(s->index());
       if (res)
       {
         printf("%s",res);
       }
       else
       {
-        printf("print: non supported Emoji-entity found: %s\n",EmojiEntityMapper::instance()->html(s->emoji()));
+        printf("print: non supported emoji found: %s\n",qPrint(s->name()));
       }
     }
     void visit(DocURL *u)
@@ -187,6 +187,7 @@ class PrintDocVisitor : public DocVisitor
         case DocInclude::Include: printf("include"); break;
         case DocInclude::IncWithLines: printf("incwithlines"); break;
         case DocInclude::DontInclude: printf("dontinclude"); break;
+        case DocInclude::DontIncWithLines: printf("dontinwithlines"); break;
         case DocInclude::HtmlInclude:
                printf("htmlinclude");
                if (inc->isBlock()) printf(" block=\"yes\"");

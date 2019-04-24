@@ -277,6 +277,8 @@ static DocCmdMap docCmdMap[] =
   { "verbinclude",     0,                       FALSE },
   { "version",         0,                       TRUE  },
   { "warning",         0,                       TRUE  },
+  { "snippet",         0,                       TRUE  },
+  { "snippetlineno",   0,                       TRUE  },
   { 0, 0, FALSE }
 };
 
@@ -934,7 +936,9 @@ HR        [hH][rR]
 PARA      [pP][aA][rR][aA]
 CODE      [cC][oO][dD][eE]
 CAPTION   [cC][aA][pP][tT][iI][oO][nN]
-DETAILEDHTML {PRE}|{UL}|{TABLE}|{OL}|{DL}|{P}|[Hh][1-6]|{IMG}|{HR}|{PARA}
+CENTER    [cC][eE][nN][tT][eE][rR]
+DIV       [dD][iI][vV]
+DETAILEDHTML {CENTER}|{DIV}|{PRE}|{UL}|{TABLE}|{OL}|{DL}|{P}|[Hh][1-6]|{IMG}|{HR}|{PARA}
 DETAILEDHTMLOPT {CODE}
 BN        [ \t\n\r]
 BL        [ \t\r]*"\n" 
@@ -1119,6 +1123,8 @@ RCSTAG    "$"{ID}":"[^\n$]+"$"
                                           // the {B}* in the front was added for bug620924
                                           QCString fullMatch = QCString(yytext);
                                           int idx = fullMatch.find('{');
+                                          /* handle `\f{` and `@f{` as special cases */
+                                          if ((idx > 1) && (yytext[idx-1] == 'f') && (yytext[idx-2] == '\\' || yytext[idx-2] =='@')) REJECT;
                                           int idxEnd = fullMatch.find("}",idx+1);
                                           QCString cmdName;
                                           QCStringList optList;
@@ -1175,7 +1181,7 @@ RCSTAG    "$"{ID}":"[^\n$]+"$"
 					    addOutput(yytext);
 					  }
   					}
-<Comment>{B}*("\\\\"|"@@")"f"[$\[{]	{ // escaped formula command
+<Comment>{B}*({CMD}{CMD})"f"[$\[{]	{ // escaped formula command
   					  addOutput(yytext);
   					}
 <Comment>{B}*{CMD}"~"[a-z_A-Z-]*		{ // language switch command
@@ -1187,6 +1193,7 @@ RCSTAG    "$"{ID}":"[^\n$]+"$"
 				          }
   					}
 <Comment>{B}*{CMD}"f{"[^}\n]+"}"("{"?)  { // start of a formula with custom environment
+					  setOutput(OutputDoc);
 					  formulaText="\\begin";
 					  formulaEnv=QString(yytext).stripWhiteSpace().data()+2;
 					  if (formulaEnv.at(formulaEnv.length()-1)=='{')
@@ -1204,6 +1211,7 @@ RCSTAG    "$"{ID}":"[^\n$]+"$"
 					  BEGIN(ReadFormulaShort);
   					}
 <Comment>{B}*{CMD}"f["			{ // start of a block formula
+					  setOutput(OutputDoc);
 					  formulaText="\\[";
 					  formulaNewLines=0;
 					  BEGIN(ReadFormulaLong);
@@ -1274,6 +1282,11 @@ RCSTAG    "$"{ID}":"[^\n$]+"$"
                                           addOutput(insidePre || Doxygen::markdownSupport ? yytext : "&ndash;");
                                         }
 <Comment>"-#"{B}+                       { // numbered item
+                                          if (inContext!=OutputXRef)
+                                          {
+                                            briefEndsAtDot=FALSE;
+                                            setOutput(OutputDoc);
+                                          }
                                           addOutput(yytext);
                                         }
 <Comment>("."+)[a-z_A-Z0-9\)]		{ // . at start or in the middle of a word, or ellipsis
@@ -1615,20 +1628,12 @@ RCSTAG    "$"{ID}":"[^\n$]+"$"
 
   /* --------- handle arguments of the param command ------------ */
 <ParamArg1>{ID}/{B}*","                 {
-                                          if (yytext[0]=='_' && Config_getBool(MARKDOWN_SUPPORT))
-                                          {
-                                            addOutput('\\');
-                                          }
                                           addOutput(yytext);
                                         }
 <ParamArg1>","                          {
                                           addOutput(" , ");
                                         }
 <ParamArg1>{ID}                         {
-                                          if (yytext[0]=='_' && Config_getBool(MARKDOWN_SUPPORT))
-                                          {
-                                            addOutput('\\');
-                                          }
                                           addOutput(yytext);
                                           BEGIN( Comment );
                                         }
@@ -1800,7 +1805,7 @@ RCSTAG    "$"{ID}":"[^\n$]+"$"
   					  g_sectionTitle+=yytext;
 					  addOutput(yytext);
   					}
-<SectionTitle>("\\\\"|"@@"){ID}		{ // unescape escaped command
+<SectionTitle>({CMD}{CMD}){ID}		{ // unescape escaped command
   					  g_sectionTitle+=&yytext[1];
 					  addOutput(yytext);
   					}
@@ -3003,7 +3008,9 @@ static bool handleToc(const QCString &, const QCStringList &optList)
     }
     if (current->localToc.nothingEnabled())
     {
-      current->localToc.enableHtml(5); // for backward compatibility
+      // for backward compatibility
+      current->localToc.enableHtml(5);
+      current->localToc.enableXml(5);
     }
   }
   return FALSE;
@@ -3076,6 +3083,33 @@ static void checkFormula()
 
 //----------------------------------------------------------------------------
 
+QCString preprocessCommentBlock(const QCString &comment,
+                                const QCString &fileName,
+                                int lineNr)
+{
+  if (!comment.isEmpty() && Doxygen::markdownSupport)
+  {
+    QCString result = processMarkdown(fileName,lineNr,0,comment);
+    const char *p = result.data();
+    if (p)
+    {
+      while (*p==' ')  p++; // skip over spaces
+      while (*p=='\n') p++; // skip over newlines
+      if (qstrncmp(p,"<br>",4)==0) p+=4; // skip over <br>
+    }
+    if (p>result.data())
+    {
+      // strip part of the input
+      result = result.mid(p-result.data());
+    }
+    return result;
+  }
+  else
+  {
+    return comment;
+  }
+}
+
 bool parseCommentBlock(/* in */     ParserInterface *parser,
                        /* in */     Entry *curEntry,
                        /* in */     const QCString &comment,
@@ -3098,19 +3132,7 @@ bool parseCommentBlock(/* in */     ParserInterface *parser,
   langParser     = parser;
   current        = curEntry;
   if (comment.isEmpty()) return FALSE; // avoid empty strings
-  if (Doxygen::markdownSupport)
-  {
-    inputString      = processMarkdown(fileName,lineNr,NULL,comment);
-    QString qq(inputString);
-    while (qq.startsWith(" ")) qq = qq.mid(1);
-    while (qq.startsWith("\n")) qq = qq.mid(1);
-    if (qq.startsWith("<br>")) qq = qq.mid(4);
-    inputString = QCString(qq.data());
-  }
-  else
-  {
-    inputString    = comment;
-  }
+  inputString    = comment;
   inputString.append(" ");
   inputPosition  = position;
   yyLineNr       = lineNr;

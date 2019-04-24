@@ -126,7 +126,6 @@ const char *tokToString(int token)
     case TK_RCSTAG:      return "TK_RCSTAG";
     case TK_URL:         return "TK_URL";
     case TK_COMMAND_BS:  return "TK_COMMAND_BS";
-    case TK_EMOJI:       return "TK_EMOJI";
   }
   return "ERROR";
 }
@@ -212,7 +211,7 @@ static void handleHtmlTag()
   {
     char c=tagText.at(i);
     // skip spaces
-    while (i<(int)yyleng && isspace(c)) { c=tagText.at(++i); }
+    while (i<(int)yyleng && isspace((uchar)c)) { c=tagText.at(++i); }
     // check for end of the tag
     if (c == '>') break;
     // Check for XML style "empty" tag.
@@ -223,17 +222,17 @@ static void handleHtmlTag()
     }
     startName=i;
     // search for end of name
-    while (i<(int)yyleng && !isspace(c) && c!='=') { c=tagText.at(++i); }
+    while (i<(int)yyleng && !isspace((uchar)c) && c!='=') { c=tagText.at(++i); }
     endName=i;
     HtmlAttrib opt;
     opt.name  = tagText.mid(startName,endName-startName).lower(); 
     // skip spaces
-    while (i<(int)yyleng && isspace(c)) { c=tagText.at(++i); } 
+    while (i<(int)yyleng && isspace((uchar)c)) { c=tagText.at(++i); } 
     if (tagText.at(i)=='=') // option has value
     {
       c=tagText.at(++i);
       // skip spaces
-      while (i<(int)yyleng && isspace(c)) { c=tagText.at(++i); } 
+      while (i<(int)yyleng && isspace((uchar)c)) { c=tagText.at(++i); } 
       if (tagText.at(i)=='\'') // option '...'
       {
         c=tagText.at(++i);
@@ -257,7 +256,7 @@ static void handleHtmlTag()
       {
 	startAttrib=i;
 	// search for separator or end symbol
-        while (i<(int)yyleng && !isspace(c) && c!='>') { c=tagText.at(++i); } 
+        while (i<(int)yyleng && !isspace((uchar)c) && c!='>') { c=tagText.at(++i); } 
 	endAttrib=i;
 	if (i<(int)yyleng) c=tagText.at(++i);
       }
@@ -343,7 +342,6 @@ CMD       ("\\"|"@")
 WS        [ \t\r\n]
 NONWS     [^ \t\r\n]
 BLANK     [ \t\r]
-EMOJI     (":"[a-z_A-Z0-9\x80-\xFF"'+()&\*\.!,#-]":"|":"[a-z_A-Z0-9\x80-\xFF"'+()&\*\.!,#-][a-z_A-Z0-9\x80-\xFF "'+()&\*\.!,#-]*[a-z_A-Z0-9\x80-\xFF"'+()&\*\.!,#-]":")
 ID        "$"?[a-z_A-Z\x80-\xFF][a-z_A-Z0-9\x80-\xFF]*
 LABELID   [a-z_A-Z\x80-\xFF][a-z_A-Z0-9\x80-\xFF\-]*
 PHPTYPE   [\\:a-z_A-Z0-9\x80-\xFF\-]+
@@ -362,12 +360,12 @@ URLCHAR   [a-z_A-Z0-9\!\~\,\:\;\'\$\?\@\&\%\#\.\-\+\/\=]
 URLMASK   ({URLCHAR}+([({]{URLCHAR}*[)}])?)+
 FILESCHAR [a-z_A-Z0-9\\:\\\/\-\+@&#]
 FILEECHAR [a-z_A-Z0-9\-\+@&#]
-HFILEMASK ("."{FILESCHAR}*{FILEECHAR}+)*
+HFILEMASK ("."{FILESCHAR}*{FILEECHAR}+)+
 FILEMASK  ({FILESCHAR}*{FILEECHAR}+("."{FILESCHAR}*{FILEECHAR}+)*)|{HFILEMASK}
 LINKMASK  [^ \t\n\r\\@<&${}]+("("[^\n)]*")")?({BLANK}*("const"|"volatile"){BLANK}+)? 
 VERBATIM  "verbatim"{BLANK}*
 SPCMD1    {CMD}([a-z_A-Z][a-z_A-Z0-9]*|{VERBATIM}|"--"|"---")
-SPCMD2    {CMD}[\\@<>&$#%~".+|-]
+SPCMD2    {CMD}[\\@<>&$#%~".+=|-]
 SPCMD3    {CMD}form#[0-9]+
 SPCMD4    {CMD}"::"
 SPCMD5    {CMD}":"
@@ -462,6 +460,7 @@ REFWORD_NOCV   {FILEMASK}|{LABELID}|{REFWORD2_NOCV}|{REFWORD3}|{REFWORD4_NOCV}
 %x St_SetScopeEnd
 %x St_Options
 %x St_Block
+%x St_Emoji
 
 %x St_Sections
 %s St_SecLabel1
@@ -688,17 +687,6 @@ REFWORD_NOCV   {FILEMASK}|{LABELID}|{REFWORD2_NOCV}|{REFWORD3}|{REFWORD4_NOCV}
 <St_Para,St_Text>"&"{ID}";" { /* special symbol */ 
                          g_token->name = yytext;
                          return TK_SYMBOL;
-                       }
-<St_Para,St_Text>{EMOJI} { /* emoji symbol */ 
-                         if (g_fileName == CiteConsts::fileName)
-                         {
-                           REJECT;
-                         }
-                         else
-                         {
-                           g_token->name = yytext;
-                           return TK_EMOJI;
-                         }
                        }
 
   /********* patterns for linkable words ******************/
@@ -946,17 +934,6 @@ REFWORD_NOCV   {FILEMASK}|{LABELID}|{REFWORD2_NOCV}|{REFWORD3}|{REFWORD4_NOCV}
                          g_token->name = yytext;
   		         return TK_SYMBOL;
                        }
-<St_TitleN>{EMOJI}     { /* emoji */
-                         if (g_fileName == CiteConsts::fileName)
-                         {
-                           REJECT;
-                         }
-                         else
-                         {
-                           g_token->name = yytext;
-                           return TK_EMOJI;
-                         }
-                       }
 <St_TitleN>{HTMLTAG}   {
   		       }
 <St_TitleN>{SPCMD1}    |   
@@ -992,17 +969,6 @@ REFWORD_NOCV   {FILEMASK}|{LABELID}|{REFWORD2_NOCV}|{REFWORD3}|{REFWORD4_NOCV}
 <St_TitleQ>"&"{ID}";"  { /* symbol */
                          g_token->name = yytext;
   		         return TK_SYMBOL;
-                       }
-<St_TitleQ>{EMOJI}  { /* emoji */
-                         if (g_fileName == CiteConsts::fileName)
-                         {
-                           REJECT;
-                         }
-                         else
-                         {
-                           g_token->name = yytext;
-                           return TK_EMOJI;
-                         }
                        }
 <St_TitleQ>{SPCMD1}    |   
 <St_TitleQ>{SPCMD2}    { /* special command */ 
@@ -1042,6 +1008,7 @@ REFWORD_NOCV   {FILEMASK}|{LABELID}|{REFWORD2_NOCV}|{REFWORD3}|{REFWORD4_NOCV}
   			 return 0;
                        }
 <St_TitleV,St_TitleA>\n	 {
+  			 unput(*yytext);
   			 return 0;
                        }
 
@@ -1143,17 +1110,6 @@ REFWORD_NOCV   {FILEMASK}|{LABELID}|{REFWORD2_NOCV}|{REFWORD3}|{REFWORD4_NOCV}
                          g_token->name = yytext;
   		         return TK_SYMBOL;
                        }
-<St_Ref2>{EMOJI}    { /* emoji */
-                         if (g_fileName == CiteConsts::fileName)
-                         {
-                           REJECT;
-                         }
-                         else
-                         {
-                           g_token->name = yytext;
-                           return TK_EMOJI;
-                         }
-                       }
 <St_Ref2>{SPCMD1}      |   
 <St_Ref2>{SPCMD2}      { /* special command */ 
                          g_token->name = yytext+1;
@@ -1232,6 +1188,13 @@ REFWORD_NOCV   {FILEMASK}|{LABELID}|{REFWORD2_NOCV}|{REFWORD3}|{REFWORD4_NOCV}
 <St_Block>"]"          {
                          return TK_WORD;
                        }
+<St_Emoji>[:0-9_a-z+-]+  {
+                         g_token->name=yytext;
+                         return TK_WORD;
+                       }
+<St_Emoji>.            {
+                         return 0;
+                       }
 <St_File>{FILEMASK}    {
   			 g_token->name = yytext;
 			 return TK_WORD;  
@@ -1264,7 +1227,7 @@ REFWORD_NOCV   {FILEMASK}|{LABELID}|{REFWORD2_NOCV}|{REFWORD3}|{REFWORD4_NOCV}
      /* State for the pass used to find the anchors and sections */ 
 
 <St_Sections>[^\n@\\<]+
-<St_Sections>"@@"|"\\\\"|"@<"|"\\<"
+<St_Sections>{CMD}("<"|{CMD})
 <St_Sections>"<"{CAPTION}({WS}+{ATTRIB})*">" {
                                       QCString tag=yytext;
                                       int s=tag.find("id=");
@@ -1604,6 +1567,12 @@ void doctokenizerYYsetStateBlock()
 {
   g_token->name="";
   BEGIN(St_Block);
+}
+
+void doctokenizerYYsetStateEmoji()
+{
+  g_token->name="";
+  BEGIN(St_Emoji);
 }
 
 void doctokenizerYYcleanup()

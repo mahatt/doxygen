@@ -93,15 +93,14 @@ void ManDocVisitor::visit(DocSymbol *s)
 void ManDocVisitor::visit(DocEmoji *s)
 {
   if (m_hide) return;
-  const char *res = EmojiEntityMapper::instance()->man(s->emoji());
+  const char *res = EmojiEntityMapper::instance()->name(s->index());
   if (res)
   {
     m_t << res;
   }
   else
   {
-    // no error or warning to be supplied
-    // err("man: non supported HTML-entity found: &%s;\n",get_symbol_item(s->emoji()));
+    m_t << s->name();
   }
   m_firstCol=FALSE;
 }
@@ -255,20 +254,21 @@ void ManDocVisitor::visit(DocInclude *inc)
          m_t << ".PP" << endl;
          m_t << ".nf" << endl;
          QFileInfo cfi( inc->file() );
-         FileDef fd( cfi.dirPath().utf8(), cfi.fileName().utf8() );
+         FileDef *fd = createFileDef( cfi.dirPath().utf8(), cfi.fileName().utf8() );
          Doxygen::parserManager->getParser(inc->extension())
                                ->parseCode(m_ci,inc->context(),
                                            inc->text(),
                                            langExt,
                                            inc->isExample(),
                                            inc->exampleFile(),
-                                           &fd,   // fileDef,
+                                           fd,   // fileDef,
                                            -1,    // start line
                                            -1,    // end line
                                            FALSE, // inline fragment
                                            0,     // memberDef
                                            TRUE
 					   );
+         delete fd;
          if (!m_firstCol) m_t << endl;
          m_t << ".fi" << endl;
          m_t << ".PP" << endl;
@@ -297,10 +297,9 @@ void ManDocVisitor::visit(DocInclude *inc)
       m_t << ".PP" << endl;
       m_firstCol=TRUE;
       break;
-    case DocInclude::DontInclude: 
-      break;
-    case DocInclude::HtmlInclude: 
-      break;
+    case DocInclude::DontInclude:
+    case DocInclude::DontIncWithLines:
+    case DocInclude::HtmlInclude:
     case DocInclude::LatexInclude:
       break;
     case DocInclude::VerbInclude: 
@@ -336,7 +335,7 @@ void ManDocVisitor::visit(DocInclude *inc)
          m_t << ".PP" << endl;
          m_t << ".nf" << endl;
          QFileInfo cfi( inc->file() );
-         FileDef fd( cfi.dirPath().utf8(), cfi.fileName().utf8() );
+         FileDef *fd = createFileDef( cfi.dirPath().utf8(), cfi.fileName().utf8() );
          Doxygen::parserManager->getParser(inc->extension())
                                ->parseCode(m_ci,
                                            inc->context(),
@@ -344,13 +343,14 @@ void ManDocVisitor::visit(DocInclude *inc)
                                            langExt,
                                            inc->isExample(),
                                            inc->exampleFile(), 
-                                           &fd,
+                                           fd,
                                            lineBlock(inc->text(),inc->blockId()),
                                            -1,    // endLine
                                            FALSE, // inlineFragment
                                            0,     // memberDef
                                            TRUE   // show line number
                                           );
+         delete fd;
          if (!m_firstCol) m_t << endl;
          m_t << ".fi" << endl;
          m_t << ".PP" << endl;
@@ -386,9 +386,24 @@ void ManDocVisitor::visit(DocIncOperator *op)
     popEnabled();
     if (!m_hide) 
     {
+      FileDef *fd;
+      if (!op->includeFileName().isEmpty())
+      {
+        QFileInfo cfi( op->includeFileName() );
+        fd = createFileDef( cfi.dirPath().utf8(), cfi.fileName().utf8() );
+      }
+
       Doxygen::parserManager->getParser(m_langExt)
                             ->parseCode(m_ci,op->context(),op->text(),langExt,
-                                        op->isExample(),op->exampleFile());
+                                        op->isExample(),op->exampleFile(),
+                                        fd,     // fileDef
+                                        op->line(),    // startLine
+                                        -1,    // endLine
+                                        FALSE, // inline fragment
+                                        0,     // memberDef
+                                        op->showLineNo()  // show line numbers
+                                       );
+      if (fd) delete fd;
     }
     pushEnabled();
     m_hide=TRUE;

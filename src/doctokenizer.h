@@ -41,7 +41,6 @@ enum Tokens
   TK_RCSTAG        = 10,
   TK_URL           = 11,
   TK_COMMAND_BS    = 12, //! Command starting with `\`
-  TK_EMOJI         = 13,
 
   RetVal_OK             = 0x10000,
   RetVal_SimpleSec      = 0x10001,
@@ -72,9 +71,7 @@ enum Tokens
 /** @brief Data associated with a token used by the comment block parser. */
 struct TokenInfo
 {
-  // unknown token
-  char unknownChar;
-  
+  TokenInfo() : isEnumList(FALSE), indent(0), id(-1), endTag(FALSE), emptyTag(FALSE), paramDir(Unspecified) {}
   // command token
   QCString name;
 
@@ -167,5 +164,6 @@ void doctokenizerYYsetStateSetScope();
 void doctokenizerYYsetStatePlantUMLOpt();
 void doctokenizerYYsetStateOptions();
 void doctokenizerYYsetStateBlock();
+void doctokenizerYYsetStateEmoji();
 
 #endif

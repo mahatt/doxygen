@@ -204,7 +204,6 @@ add_library(_doxygen STATIC
     latexgen.cpp
     layout.cpp
     lodepng.cpp
-    logos.cpp
     mandocvisitor.cpp
     mangen.cpp
     sqlite3gen.cpp
@@ -231,7 +230,6 @@ add_library(_doxygen STATIC
     rtfgen.cpp
     rtfstyle.cpp
     searchindex.cpp
-    store.cpp
     tagreader.cpp
     template.cpp
     textdocvisitor.cpp
